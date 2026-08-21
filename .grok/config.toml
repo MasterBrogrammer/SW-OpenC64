@@ -1,0 +1,3 @@
+# OpenApple MCP lives in ~/.grok/config.toml (user scope) on purpose.
+# A project-scoped copy here is treated as repo-local and stays disabled
+# until the folder is trusted, which shadows the working user-level server.

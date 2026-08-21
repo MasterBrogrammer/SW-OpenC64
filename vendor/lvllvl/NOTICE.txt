@@ -1,0 +1,6 @@
+The browser WASM in public/emu/c64.js + c64.wasm comes from jaammees/lvllvl
+(https://github.com/jaammees/lvllvl), a chips-family Commodore 64 core compiled
+with Emscripten (1541, SID, insertDisk, loadPRG).
+
+This tree does not vendor the full lvllvl editor. Only the C64 WASM runtime is
+shipped. Chip-level source of truth is vendor/chips (floooh/chips, zlib).

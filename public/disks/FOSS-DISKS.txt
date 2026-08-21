@@ -1,0 +1,17 @@
+SW-OpenC64 bundled media — FOSS / freeware / public domain only
+
+c64anabalt.crt / .prg
+  Official Canabalt conversion by Paul Koller (Paulko64) / RGCD, 2011.
+  Author-released freeware (CSDb release 103143).
+
+super-bread-box.crt / .prg
+  Official Super Crate Box conversion by Paul Koller / RGCD, 2012.
+  Author-released freeware (CSDb release 113177, 16K cart).
+
+blank.d64     Empty formatted 35-track 1541 image. Generated here.
+hello.prg     Tiny BASIC greeting. Generated here. Public domain.
+tenprint.prg  10 PRINT CHR$(205.5+RND(1)); : GOTO 10. Public-domain idiom.
+colors.prg    POKE border/background. Generated here. Public domain.
+
+We do not ship commercial C64 titles (Last Ninja, Boulder Dash, Impossible
+Mission, …). Drop your own .d64 / .prg / .crt; they stay in IndexedDB.

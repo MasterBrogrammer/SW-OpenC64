@@ -1,0 +1,11 @@
+node_modules/
+.project_id
+.github_repo
+.env
+.env.*
+.tools/
+*.local
+.DS_Store
+.vercel
+dist/
+.output/
