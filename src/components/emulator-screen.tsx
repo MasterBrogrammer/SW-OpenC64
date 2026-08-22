@@ -274,6 +274,7 @@ export function EmulatorScreen({
         useEmu.getState().setFocused(true);
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error(err);
         useEmu.getState().setStatus(
           err instanceof Error ? err.message : "The C64 failed to power on",

@@ -89,10 +89,10 @@ export function SoftKeyboard({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="md:hidden">
+    <div className="mt-auto shrink-0 md:hidden">
       <button
         type="button"
-        className="mt-3 h-11 w-full rounded-md bg-raised text-sm text-muted hover:text-fg"
+        className="mt-2 h-11 w-full rounded-md bg-raised text-sm text-muted hover:text-fg"
         onClick={() => setOpen((v) => !v)}
       >
         {open ? "Hide keyboard" : "Show keyboard"}
@@ -100,14 +100,14 @@ export function SoftKeyboard({
       {open ? (
         <div className="mt-2 flex flex-col gap-1">
           {ROWS.map((row, i) => (
-            <div key={i} className="flex gap-1">
+            <div key={i} className="flex gap-1 overflow-x-auto">
               {row.map((key) => (
                 <button
                   key={key.label}
                   type="button"
                   className={cn(
-                    "h-9 rounded-sm bg-raised px-1 font-mono text-[10px] text-fg",
-                    key.grow ? "flex-1" : "min-w-7 flex-1",
+                    "h-11 min-w-11 rounded-sm bg-raised px-1 font-mono text-[10px] text-fg",
+                    key.grow ? "flex-1" : "flex-1",
                   )}
                   onPointerDown={(e) => {
                     e.preventDefault();

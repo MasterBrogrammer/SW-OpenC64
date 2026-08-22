@@ -154,11 +154,27 @@ export async function createMachine(canvas: HTMLCanvasElement): Promise<C64Machi
   };
 
   const ready = new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      pending.delete(0);
+      reject(new Error("C64 worker did not boot"));
+    }, 20000);
     pending.set(0, {
-      resolve: () => resolve(),
-      reject,
+      resolve: () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        resolve();
+      },
+      reject: (err: Error) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        reject(err);
+      },
     });
-    window.setTimeout(() => reject(new Error("C64 worker did not boot")), 20000);
   });
   worker.postMessage({ type: "boot" });
   await ready;
