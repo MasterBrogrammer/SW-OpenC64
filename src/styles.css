@@ -288,10 +288,10 @@
   overflow: hidden;
 }
 
-/* Cover (not contain): portrait width-fit left ~30% letterbox on ~390×844. */
+/* Contain-to-width: shrink beats clip so canvas/title stay fully visible. */
 .mobile-crt-stage .screen-bezel {
-  width: max(100cqw, calc(100cqh * 384 / 272));
-  height: max(100cqh, calc(100cqw * 272 / 384));
+  width: min(100cqw, calc(100cqh * 384 / 272));
+  height: min(100cqh, calc(100cqw * 272 / 384));
 }
 
 .mobile-chrome-sheet {

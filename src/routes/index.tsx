@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { EmulatorScreen } from "@/components/emulator-screen";
 import { MobileC64Chrome } from "@/components/mobile-c64-chrome";
 import { MobilePlayShell } from "@/components/mobile-play-shell";
+import { CATALOG } from "@/lib/catalog";
 import {
   DiskDropBanner,
   SoftwareLibrary,
@@ -68,6 +69,8 @@ function Home() {
       ) : (
         <MobilePlayShell
           brand="C="
+          sheetLabel="Disks"
+          badge={CATALOG.length}
           crt={<EmulatorScreen chrome="minimal" />}
           chrome={<MobileC64Chrome />}
         />
