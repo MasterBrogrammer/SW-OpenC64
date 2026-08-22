@@ -92,7 +92,7 @@ export function SoftKeyboard({
     <div className="md:hidden">
       <button
         type="button"
-        className="mt-3 h-10 w-full rounded-md bg-raised text-sm text-muted hover:text-fg"
+        className="mt-3 h-11 w-full rounded-md bg-raised text-sm text-muted hover:text-fg"
         onClick={() => setOpen((v) => !v)}
       >
         {open ? "Hide keyboard" : "Show keyboard"}

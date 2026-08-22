@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { EmulatorScreen } from "@/components/emulator-screen";
+import { MobileC64Chrome } from "@/components/mobile-c64-chrome";
+import { MobilePlayShell } from "@/components/mobile-play-shell";
 import {
   DiskDropBanner,
   SoftwareLibrary,
@@ -10,6 +12,7 @@ import { UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { resumeAllAudio } from "@/lib/c64-audio";
 import { MCP_BRIDGE_REV, startMcpBridge } from "@/lib/mcp-bridge";
+import { useDesktopLayout } from "@/lib/use-desktop-layout";
 import { useEmu } from "@/lib/emu-store";
 import { importDiskFiles, userTitleId } from "@/lib/user-disks";
 
@@ -17,6 +20,7 @@ export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
   const requestLoad = useEmu((s) => s.requestLoad);
+  const desktop = useDesktopLayout();
   const [dropError, setDropError] = useState<string | null>(null);
   useEffect(() => startMcpBridge(), [MCP_BRIDGE_REV]);
   const drop = useDiskDrop((files) => {
@@ -34,25 +38,40 @@ function Home() {
 
   return (
     <div
-      className="flex min-h-dvh flex-col lg:h-dvh lg:max-h-dvh lg:overflow-hidden"
+      className={
+        desktop
+          ? "flex h-dvh max-h-dvh flex-col overflow-hidden"
+          : "flex min-h-dvh flex-col"
+      }
       {...drop.props}
     >
       <DiskDropBanner active={drop.over} />
-      <Header />
       {dropError ? (
         <div className="border-b border-danger/40 bg-danger/10 px-4 py-2 text-center text-xs text-danger">
           {dropError}
         </div>
       ) : null}
-      <main className="mx-auto grid w-full max-w-[1400px] min-h-0 flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)] lg:overflow-hidden">
-        <EmulatorScreen />
-        <SoftwareLibrary />
-      </main>
-      <footer className="hidden shrink-0 border-t border-border px-4 py-2 text-center text-xs text-muted lg:block">
-        Runtime is a chips-family C64 in WASM. Firmware: MEGA65 Open ROMs (LGPL).
-        Bundled programs are FOSS or public-domain BASIC; drop your own .d64 for
-        the rest. MCP: WOZMCP64.
-      </footer>
+
+      {desktop ? (
+        <>
+          <Header />
+          <main className="mx-auto grid w-full max-w-[1400px] min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)] gap-4 overflow-hidden p-4">
+            <EmulatorScreen chrome="full" />
+            <SoftwareLibrary />
+          </main>
+          <footer className="shrink-0 border-t border-border px-4 py-2 text-center text-xs text-muted">
+            Runtime is a chips-family C64 in WASM. Firmware: MEGA65 Open ROMs (LGPL).
+            Bundled programs are FOSS or public-domain BASIC; drop your own .d64 for
+            the rest. MCP: WOZMCP64.
+          </footer>
+        </>
+      ) : (
+        <MobilePlayShell
+          brand="C="
+          crt={<EmulatorScreen chrome="minimal" />}
+          chrome={<MobileC64Chrome />}
+        />
+      )}
     </div>
   );
 }
