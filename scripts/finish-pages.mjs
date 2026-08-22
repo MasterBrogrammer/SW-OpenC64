@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const dir = join(process.cwd(), "dist/client");
@@ -13,6 +13,8 @@ if (styles) {
 
 writeFileSync(join(dir, "index.html"), html);
 writeFileSync(join(dir, "404.html"), html);
+mkdirSync(join(dir, "display"), { recursive: true });
+writeFileSync(join(dir, "display/index.html"), html);
 writeFileSync(join(dir, ".nojekyll"), "");
 
 const manifest = join(dir, "__grok/manifest.webmanifest");
@@ -30,4 +32,4 @@ if (!existsSync(manifest)) {
   );
 }
 
-console.log("pages: wrote index.html, 404.html, .nojekyll");
+console.log("pages: wrote index.html, display/index.html, 404.html, .nojekyll");

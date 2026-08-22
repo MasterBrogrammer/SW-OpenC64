@@ -1,3 +1,4 @@
+import { createDiskAudio, type DiskAudio } from "@/lib/disk-audio";
 export type SidAudio = {
   resume: () => void;
   setMuted: (muted: boolean) => void;
@@ -10,6 +11,7 @@ export type SidAudio = {
   key: () => void;
   whoosh: () => void;
   sampleRate: () => number;
+  diskSfx: DiskAudio;
 };
 
 const RING = 48000 * 2;
@@ -27,9 +29,15 @@ export function createC64Audio(): SidAudio {
   let sfxGain: GainNode | null = null;
   let lastSeek = 0;
   let lastKey = 0;
+  let motorLoops = false;
+  let chatter: number | null = null;
+  let brown = 0;
+  let tickLeft = 0;
+  let untilTick = 0;
   const ring = new Float32Array(RING);
   let w = 0;
   let r = 0;
+  const disk = createDiskAudio();
 
   function ensure(): AudioContext | null {
     if (closed) return null;
@@ -50,27 +58,7 @@ export function createC64Audio(): SidAudio {
       motorGain = ctx.createGain();
       motorGain.gain.value = 0;
       motorGain.connect(master);
-
-      const rumble = ctx.createBiquadFilter();
-      rumble.type = "lowpass";
-      rumble.frequency.value = 220;
-      const rumbleSrc = ctx.createBufferSource();
-      rumbleSrc.buffer = noise(ctx, 1.6, "brown");
-      rumbleSrc.loop = true;
-      rumbleSrc.connect(rumble);
-      rumble.connect(motorGain);
-      rumbleSrc.start();
-
-      const whir = ctx.createBiquadFilter();
-      whir.type = "bandpass";
-      whir.frequency.value = 720;
-      whir.Q.value = 1.2;
-      const whirSrc = ctx.createBufferSource();
-      whirSrc.buffer = noise(ctx, 1.6, "pink");
-      whirSrc.loop = true;
-      whirSrc.connect(whir);
-      whir.connect(motorGain);
-      whirSrc.start();
+      motorLoops = false;
 
       const length = 2048;
       node = ctx.createScriptProcessor(length, 0, 1);
@@ -102,14 +90,75 @@ export function createC64Audio(): SidAudio {
     }
   }
 
+  function startMotorLoops(ac: AudioContext) {
+    if (motorLoops || !motorGain) return;
+    motorLoops = true;
+    const rumble = ac.createBiquadFilter();
+    rumble.type = "lowpass";
+    rumble.frequency.value = 190;
+    rumble.Q.value = 0.6;
+    const rumbleGain = ac.createGain();
+    rumbleGain.gain.value = 0.7;
+    const rumbleSrc = ac.createBufferSource();
+    rumbleSrc.buffer = noise(ac, 1.8, "brown");
+    rumbleSrc.loop = true;
+    rumbleSrc.connect(rumble);
+    rumble.connect(rumbleGain);
+    rumbleGain.connect(motorGain);
+    rumbleSrc.start();
+
+    const whir = ac.createBiquadFilter();
+    whir.type = "bandpass";
+    whir.frequency.value = 640;
+    whir.Q.value = 1.1;
+    const whirGain = ac.createGain();
+    whirGain.gain.value = 0.5;
+    const whirSrc = ac.createBufferSource();
+    whirSrc.buffer = noise(ac, 1.8, "pink");
+    whirSrc.loop = true;
+    whirSrc.connect(whir);
+    whir.connect(whirGain);
+    whirGain.connect(motorGain);
+    whirSrc.start();
+  }
+
+  function applyMotor(ac: AudioContext) {
+    if (!motorGain) return;
+    const target = motorOn && !muted ? 0.55 : 0;
+    motorGain.gain.cancelScheduledValues(ac.currentTime);
+    motorGain.gain.value = target;
+    if (ac.state === "running") startMotorLoops(ac);
+  }
+
+  function seekNow() {
+    const ac = ensure();
+    if (!ac || !sfxGain || muted) return;
+    const now = performance.now() / 1000;
+    if (now - lastSeek < 0.018) return;
+    lastSeek = now;
+    blip(ac, sfxGain, ac.currentTime, 190 + Math.random() * 40, 0.035, 0.16);
+  }
+
+  function setChatter(on: boolean) {
+    if (on) {
+      if (chatter == null) {
+        chatter = window.setInterval(() => {
+          if (motorOn) seekNow();
+        }, 40);
+      }
+    } else if (chatter != null) {
+      window.clearInterval(chatter);
+      chatter = null;
+    }
+  }
+
   return {
     resume() {
       const ac = ensure();
       if (!ac) return;
       void ac.resume();
-      if (motorGain) {
-        motorGain.gain.setTargetAtTime(motorOn && !muted ? 0.32 : 0, ac.currentTime, 0.05);
-      }
+      disk.resume();
+      disk.motor(motorOn);
     },
     setKeepAlive(keep) {
       keepAlive = keep;
@@ -129,6 +178,7 @@ export function createC64Audio(): SidAudio {
         master.gain.cancelScheduledValues(ctx.currentTime);
         master.gain.setTargetAtTime(volume, ctx.currentTime, 0.04);
       }
+      disk.setVolume(volume);
     },
     sampleRate() {
       return ensure()?.sampleRate ?? 44100;
@@ -145,18 +195,10 @@ export function createC64Audio(): SidAudio {
     },
     motor(on) {
       motorOn = on;
-      const ac = ensure();
-      if (!ac || !motorGain) return;
-      motorGain.gain.cancelScheduledValues(ac.currentTime);
-      motorGain.gain.setTargetAtTime(on && !muted ? 0.32 : 0, ac.currentTime, 0.07);
+      disk.motor(on);
     },
     seek() {
-      const ac = ensure();
-      if (!ac || !sfxGain || muted) return;
-      const t = ac.currentTime;
-      if (t - lastSeek < 0.012) return;
-      lastSeek = t;
-      blip(ac, sfxGain, t, 190, 0.04, 0.12);
+      disk.seek();
     },
     key() {
       const ac = ensure();
@@ -166,15 +208,15 @@ export function createC64Audio(): SidAudio {
       lastKey = t;
       blip(ac, sfxGain, t, 920 + Math.random() * 180, 0.035, 0.18);
     },
+    diskSfx: disk,
     whoosh() {
-      const ac = ensure();
-      if (!ac || !sfxGain || muted) return;
-      const t = ac.currentTime;
-      blip(ac, sfxGain, t, 420, 0.12, 0.16);
-      blip(ac, sfxGain, t + 0.05, 760, 0.1, 0.12);
+      disk.resume();
+      disk.whoosh();
     },
     close() {
       closed = true;
+      disk.close();
+      setChatter(false);
       try {
         node?.disconnect();
       } catch {

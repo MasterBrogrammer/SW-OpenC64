@@ -5,6 +5,7 @@ import { asset } from "@/lib/asset";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "SW-OpenC64";
+const WOZ_REV = 8;
 
 export const Route = createRootRoute({
   head: () => ({

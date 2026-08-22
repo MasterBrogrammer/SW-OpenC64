@@ -1,5 +1,6 @@
 import { asset } from "@/lib/asset";
 import { createC64Audio, type SidAudio } from "@/lib/c64-audio";
+import type { DiskAudio } from "@/lib/disk-audio";
 import { readScreenFromBytes } from "@/lib/c64-screen";
 import type { C64Module } from "@/lib/c64-types";
 
@@ -9,6 +10,7 @@ const HEIGHT = 272;
 export type C64Machine = {
   mod: C64Module | null;
   audio: SidAudio;
+  diskSfx: DiskAudio;
   canvas: HTMLCanvasElement;
   diskBytes: Uint8Array | null;
   diskName: string;
@@ -176,13 +178,13 @@ export async function createMachine(canvas: HTMLCanvasElement): Promise<C64Machi
     worker.postMessage({ type: "cpuWrite", addr: 0xc6, value: n });
     for (let i = 0; i < n; i++) {
       worker.postMessage({ type: "cpuWrite", addr: 0x277 + i, value: pasteQueue.shift() });
-      audio.key();
     }
   }
 
   const machine: C64Machine = {
     mod: null,
     audio,
+    diskSfx: audio.diskSfx,
     canvas,
     diskBytes: null,
     diskName: "Empty",
@@ -209,6 +211,7 @@ export async function createMachine(canvas: HTMLCanvasElement): Promise<C64Machi
       machine.diskBytes = copy;
       machine.diskName = name;
       worker.postMessage({ type: "insertDisk", bytes: copy });
+      audio.motor(true);
     },
     loadPrg(bytes, inject = true) {
       worker.postMessage({ type: "loadPrg", bytes: new Uint8Array(bytes), inject });

@@ -54,6 +54,8 @@ type EmuState = {
   setDiskDirty: (dirty: boolean) => void;
 };
 
+let mcpHide: ReturnType<typeof setTimeout> | null = null;
+
 export const useEmu = create<EmuState>((set) => ({
   loadedId: null,
   loadingId: null,
@@ -67,7 +69,7 @@ export const useEmu = create<EmuState>((set) => ({
   invert: false,
   muted: false,
   volume: 50,
-  emuSpeed: 25,
+  emuSpeed: 27,
   focused: false,
   joystick: false,
   status: "Powering on…",
@@ -116,7 +118,19 @@ export const useEmu = create<EmuState>((set) => ({
   setStatus: (status) => set({ status }),
   setBooted: (booted) => set({ booted }),
   setBootPhase: (bootPhase) => set({ bootPhase }),
-  beginMcp: () => set({ mcpLive: true }),
+  beginMcp: () => {
+    if (mcpHide != null) window.clearTimeout(mcpHide);
+    set({ mcpLive: true });
+    try {
+      window.dispatchEvent(new Event("woz-ping"));
+    } catch {
+      /* */
+    }
+    mcpHide = window.setTimeout(() => {
+      set({ mcpLive: false });
+      mcpHide = null;
+    }, 50);
+  },
   endMcp: () => set({ mcpLive: false }),
   beginUplink: () => set({ uplinkLive: true }),
   endUplink: () => set({ uplinkLive: false }),

@@ -4,6 +4,7 @@ import { K } from "@/lib/c64-keys";
 import type { C64Machine } from "@/lib/c64-machine";
 import { useEmu } from "@/lib/emu-store";
 
+export const MCP_BRIDGE_REV = 6;
 const PORT = 9878;
 const BASE = `http://127.0.0.1:${PORT}`;
 
@@ -78,6 +79,79 @@ const KEYS: Record<string, number> = {
   commodore: K.COMMODORE,
 };
 
+function playSidWhoosh(audio: {
+  pushSid: (s: Float32Array) => void;
+  sampleRate: () => number;
+  whoosh?: () => void;
+  diskSfx?: { whoosh: () => void };
+}) {
+  const sr = audio.sampleRate() || 44100;
+  const total = 4.4;
+  const chunk = 1.15;
+
+  const sampleAt = (t: number) => {
+    if (t < 0 || t >= total) return 0;
+    const fade = t < 0.04 ? t / 0.04 : t > total - 0.25 ? Math.max(0, (total - t) / 0.25) : 1;
+    // handshake sweep
+    if (t < 0.32) {
+      const u = t / 0.32;
+      const hz = 380 + 900 * u;
+      const nse = (Math.random() * 2 - 1) * 0.22;
+      return fade * (0.42 * Math.sin(2 * Math.PI * hz * t) + nse);
+    }
+    // answer tone
+    if (t < 0.52) {
+      return fade * 0.28 * Math.sin(2 * Math.PI * 2100 * t);
+    }
+    // packetized FSK + telex ticks
+    const rel = t - 0.52;
+    const period = 0.3;
+    const inPkt = rel % period;
+    if (inPkt < 0.17) {
+      const bit = Math.sin(2 * Math.PI * 18 * t) > 0 ? 1200 : 2200;
+      const fsk = 0.34 * Math.sin(2 * Math.PI * bit * t);
+      const hiss = (Math.random() * 2 - 1) * 0.12;
+      return fade * (fsk + hiss);
+    }
+    if (inPkt < 0.195) {
+      const tick = Math.sin(2 * Math.PI * 1800 * t) * Math.exp(-(inPkt - 0.17) * 80);
+      return fade * 0.22 * tick;
+    }
+    return 0;
+  };
+
+  const pushRange = (from: number, dur: number) => {
+    const n = Math.max(1, Math.floor(sr * dur));
+    const buf = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const v = sampleAt(from + i / sr);
+      buf[i] = Math.max(-0.9, Math.min(0.9, v));
+    }
+    audio.pushSid(buf);
+  };
+
+  pushRange(0, Math.min(chunk, total));
+  let at = Math.min(chunk, total);
+  const id = window.setInterval(() => {
+    if (at >= total) {
+      window.clearInterval(id);
+      return;
+    }
+    const d = Math.min(chunk, total - at);
+    pushRange(at, d);
+    at += d;
+  }, 950);
+  try {
+    audio.diskSfx?.whoosh();
+  } catch {
+    /* */
+  }
+}
+
+if (typeof window !== "undefined") {
+  (window as unknown as { __wozWhoosh?: typeof playSidWhoosh }).__wozWhoosh = playSidWhoosh;
+}
+
 async function runCmd(cmd: Cmd): Promise<unknown> {
   const m = machine();
   const emu = useEmu.getState();
@@ -107,7 +181,14 @@ async function runCmd(cmd: Cmd): Promise<unknown> {
       if (!m) throw new Error("C64 is not powered on");
       let text = String(cmd.args.text ?? "");
       if (cmd.args.return) text += "\r";
-      m.paste(text);
+      const audio = m.audio as { key?: () => void };
+      const prevKey = audio.key;
+      audio.key = () => {};
+      try {
+        m.paste(text);
+      } finally {
+        if (prevKey) audio.key = prevKey;
+      }
       return { typed: text.replace(/\r/g, "\\r") };
     }
     case "key": {
@@ -162,8 +243,11 @@ async function pollLoop(stop: () => boolean) {
   while (!stop()) {
     try {
       const res = await fetch(`${BASE}/poll`, { method: "GET" });
-      if (stop()) return;
-      if (res.status === 204) continue;
+      if (res.status === 204) {
+        if (stop()) return;
+        continue;
+      }
+      if (stop() && !res.ok) return;
       if (!res.ok) {
         await sleep(1500);
         continue;
@@ -171,9 +255,9 @@ async function pollLoop(stop: () => boolean) {
       const cmd = (await res.json()) as Cmd;
       resumeAllAudio();
       useEmu.getState().beginMcp();
-      (
-        window as unknown as { __c64?: { audio?: { whoosh: () => void } } }
-      ).__c64?.audio?.whoosh();
+      const m = machine();
+      const whoosh = (window as unknown as { __wozWhoosh?: typeof playSidWhoosh }).__wozWhoosh;
+      if (m?.audio) (whoosh ?? playSidWhoosh)(m.audio);
       let payload: { id: string; ok: boolean; result?: unknown; error?: string };
       try {
         const result = await runCmd(cmd);
@@ -185,7 +269,7 @@ async function pollLoop(stop: () => boolean) {
           error: err instanceof Error ? err.message : String(err),
         };
       } finally {
-        useEmu.getState().endMcp();
+        window.setTimeout(() => useEmu.getState().endMcp(), 2200);
       }
       await fetch(`${BASE}/result`, {
         method: "POST",

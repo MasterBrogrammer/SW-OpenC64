@@ -46,6 +46,7 @@ export async function loadStarAndRun(
   const ready = await waitReady(machine, isCancelled, 8000);
   if (!ready || isCancelled()) return;
   useEmu.getState().setStatus('LOAD "*",8,1');
+  machine.audio.motor(true);
   machine.paste('LOAD "*",8,1\r');
   await sleep(400);
   const start = Date.now();
@@ -62,5 +63,6 @@ export async function loadStarAndRun(
     await sleep(80);
   }
   if (isCancelled()) return;
+  machine.audio.motor(machine.driveOn());
   machine.paste("RUN\r");
 }

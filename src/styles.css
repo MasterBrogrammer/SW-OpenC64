@@ -116,29 +116,28 @@
 
 .wozmode-badge {
   opacity: 0;
-  transform: scale(0.94);
-  filter: saturate(1.05);
+  transform: scale(0.92) translateY(8px);
+  filter: saturate(0.95);
   transition:
-    opacity 180ms ease,
-    transform 180ms ease,
-    filter 180ms ease;
+    opacity 220ms ease,
+    transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
   pointer-events: none;
   user-select: none;
 }
 
 .wozmode-badge-live {
   opacity: 1;
-  transform: scale(1);
-  animation: wozmode-flash 2.4s ease-in-out infinite;
+  transform: scale(1) translateY(0);
+  animation: wozmode-flash 0.55s ease-in-out infinite;
 }
 
 @keyframes wozmode-flash {
   0%,
   100% {
-    filter: brightness(1) drop-shadow(0 0 6px rgb(112 164 178 / 0.35));
+    filter: brightness(1) drop-shadow(0 0 5px rgb(80 220 255 / 0.22));
   }
   50% {
-    filter: brightness(1.08) drop-shadow(0 0 14px rgb(112 164 178 / 0.55));
+    filter: brightness(1.14) drop-shadow(0 0 12px rgb(80 220 255 / 0.5));
   }
 }
 

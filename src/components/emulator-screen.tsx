@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Contrast,
   Gamepad2,
-  Gauge,
   Monitor,
   Pause,
   PictureInPicture2,
@@ -11,8 +10,6 @@ import {
   RotateCcw,
   Save,
   ScanLine,
-  Volume2,
-  VolumeX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SoftKeyboard } from "@/components/soft-keyboard";
@@ -26,7 +23,7 @@ import { createMachine, type C64Machine } from "@/lib/c64-machine";
 import { openCrtPopout } from "@/lib/crt-popout";
 import { screenHasReady } from "@/lib/c64-screen";
 import { useEmu } from "@/lib/emu-store";
-import { pushRecent, readSpeed, readVolume, writeSpeed, writeVolume } from "@/lib/local-prefs";
+import { pushRecent, readVolume, writeVolume } from "@/lib/local-prefs";
 import {
   getUserDiskBytes,
   parseUserTitleId,
@@ -86,6 +83,7 @@ async function loadTitle(machine: C64Machine, id: string) {
   emu.setLoading(id);
   emu.setBootPhase("loading");
   emu.setLoadError(null);
+  machine.audio.motor(true);
   emu.setJoystick(false);
   machine.removeCrt();
 
@@ -209,9 +207,7 @@ export function EmulatorScreen() {
   const color = useEmu((s) => s.color);
   const scanlines = useEmu((s) => s.scanlines);
   const invert = useEmu((s) => s.invert);
-  const muted = useEmu((s) => s.muted);
   const volume = useEmu((s) => s.volume);
-  const emuSpeed = useEmu((s) => s.emuSpeed);
   const focused = useEmu((s) => s.focused);
   const joystick = useEmu((s) => s.joystick);
   const drive1On = useEmu((s) => s.drive1On);
@@ -239,12 +235,12 @@ export function EmulatorScreen() {
         window.__c64 = machine;
         const vol =
           typeof window !== "undefined" ? readVolume() : useEmu.getState().volume;
-        const spd =
-          typeof window !== "undefined" ? readSpeed() : useEmu.getState().emuSpeed;
         useEmu.getState().setVolume(vol);
-        useEmu.getState().setEmuSpeed(spd);
+        useEmu.getState().setMuted(false);
+        useEmu.getState().setEmuSpeed(27);
+        machine.audio.setMuted(false);
         machine.audio.setVolume(vol / 100);
-        machine.setSpeed(spd);
+        machine.setSpeed(27);
         const want =
           useEmu.getState().pendingLoad?.id ??
           useEmu.getState().loadedId ??
@@ -257,7 +253,12 @@ export function EmulatorScreen() {
           if (!m) return;
           if (!useEmu.getState().paused) m.tick(dt);
           else m.blit();
-          useEmu.getState().setDrive(m.driveOn());
+          const st = useEmu.getState();
+          const spinning = m.driveOn();
+          st.setDrive(spinning);
+          const loading = st.bootPhase === "loading" || st.bootPhase === "booting";
+          m.audio.motor(loading || spinning);
+          if (loading || spinning) m.audio.seek();
         };
         raf = requestAnimationFrame(loop);
         await loadTitle(machine, want);
@@ -301,12 +302,12 @@ export function EmulatorScreen() {
   }, [paused]);
 
   useEffect(() => {
-    machineRef.current?.audio.setMuted(muted);
-  }, [muted]);
+    machineRef.current?.audio.setMuted(false);
+  }, []);
 
   useEffect(() => {
-    machineRef.current?.setSpeed(emuSpeed);
-  }, [emuSpeed]);
+    machineRef.current?.setSpeed(27);
+  }, []);
 
   useEffect(() => {
     const win = popoutRef.current;
@@ -319,11 +320,11 @@ export function EmulatorScreen() {
         invert,
         joystick,
         volume,
-        muted,
+        muted: false,
       },
       window.location.origin,
     );
-  }, [color, scanlines, invert, joystick, volume, muted, poppedOut]);
+  }, [color, scanlines, invert, joystick, volume, poppedOut]);
 
   useEffect(() => {
     machineRef.current?.audio.setVolume(volume / 100);
@@ -331,11 +332,16 @@ export function EmulatorScreen() {
 
   useEffect(() => {
     const unlock = () => machineRef.current?.audio.resume();
-    window.addEventListener("pointerdown", unlock);
-    window.addEventListener("keydown", unlock);
+    const opts = { capture: true } as const;
+    window.addEventListener("pointerdown", unlock, opts);
+    window.addEventListener("pointerup", unlock, opts);
+    window.addEventListener("click", unlock, opts);
+    window.addEventListener("keydown", unlock, opts);
     return () => {
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("pointerdown", unlock, opts);
+      window.removeEventListener("pointerup", unlock, opts);
+      window.removeEventListener("click", unlock, opts);
+      window.removeEventListener("keydown", unlock, opts);
     };
   }, []);
 
@@ -676,12 +682,6 @@ export function EmulatorScreen() {
             >
               <Contrast className="size-4" />
             </IconBtn>
-            <IconBtn
-              label={muted ? "Unmute" : "Mute"}
-              onClick={() => useEmu.getState().setMuted(!muted)}
-            >
-              {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-            </IconBtn>
             <label className="flex h-10 items-center gap-2 pr-1" title="Volume">
               <input
                 type="range"
@@ -700,27 +700,6 @@ export function EmulatorScreen() {
               />
               <span className="w-8 font-mono text-[11px] tabular-nums text-muted">
                 {volume}%
-              </span>
-            </label>
-            <label className="flex h-10 items-center gap-2 pr-1" title="Emulation speed">
-              <Gauge className="size-4 text-muted" aria-hidden />
-              <input
-                type="range"
-                min={10}
-                max={100}
-                step={1}
-                value={emuSpeed}
-                aria-label="Emulation speed"
-                className="h-2 w-24 cursor-pointer appearance-none rounded-full bg-raised accent-accent"
-                onChange={(event) => {
-                  const next = Number(event.target.value);
-                  useEmu.getState().setEmuSpeed(next);
-                  writeSpeed(next);
-                  machineRef.current?.setSpeed(next);
-                }}
-              />
-              <span className="w-8 font-mono text-[11px] tabular-nums text-muted">
-                {emuSpeed}%
               </span>
             </label>
             <IconBtn

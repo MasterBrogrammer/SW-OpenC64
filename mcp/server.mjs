@@ -214,6 +214,30 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/cmd") {
+    let body = "";
+    req.on("data", (c) => {
+      body += c;
+    });
+    req.on("end", () => {
+      void (async () => {
+        try {
+          const msg = JSON.parse(body || "{}");
+          const name = String(msg.name || "");
+          if (!name) throw new Error("name required");
+          const result = await sendToBrowser(name, msg.args || {}, 20000);
+          res.writeHead(200, { "content-type": "application/json", ...cors });
+          res.end(JSON.stringify({ ok: true, result }));
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          res.writeHead(200, { "content-type": "application/json", ...cors });
+          res.end(JSON.stringify({ ok: false, error: message }));
+        }
+      })();
+    });
+    return;
+  }
+
   res.writeHead(404, cors);
   res.end("not found");
 });

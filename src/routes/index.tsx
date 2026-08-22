@@ -9,7 +9,7 @@ import {
 import { UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { resumeAllAudio } from "@/lib/c64-audio";
-import { startMcpBridge } from "@/lib/mcp-bridge";
+import { MCP_BRIDGE_REV, startMcpBridge } from "@/lib/mcp-bridge";
 import { useEmu } from "@/lib/emu-store";
 import { importDiskFiles, userTitleId } from "@/lib/user-disks";
 
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/")({ component: Home });
 function Home() {
   const requestLoad = useEmu((s) => s.requestLoad);
   const [dropError, setDropError] = useState<string | null>(null);
-  useEffect(() => startMcpBridge(), []);
+  useEffect(() => startMcpBridge(), [MCP_BRIDGE_REV]);
   const drop = useDiskDrop((files) => {
     setDropError(null);
     resumeAllAudio();

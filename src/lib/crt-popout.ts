@@ -17,7 +17,7 @@ export function crtPopoutFeatures() {
 }
 
 export function openCrtPopout() {
-  const url = new URL("/display", window.location.origin);
+  const url = new URL("display", window.location.href);
   url.searchParams.set("pop", "1");
   return window.open(url.toString(), DISPLAY_NAME, crtPopoutFeatures());
 }

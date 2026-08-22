@@ -65,15 +65,7 @@ export function writeVolume(n: number) {
 }
 
 export function readSpeed(): number {
-  try {
-    const raw = localStorage.getItem(SPEED_KEY);
-    if (raw == null) return 25;
-    const n = Number(raw);
-    if (!Number.isFinite(n)) return 25;
-    return Math.min(100, Math.max(10, Math.round(n)));
-  } catch {
-    return 25;
-  }
+  return 27;
 }
 
 export function writeSpeed(n: number) {
