@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 
 /**
  * Shared mobile play shell (frozen brief v2):
- * CRT-first portrait, contain-to-width (shrink beats clip),
+ * CRT-first, contain-to-width (shrink beats clip),
  * collapsible chrome (default collapsed) with Library/Disks cue,
- * landscape = rotate-to-portrait only. Desktop callers keep their layout.
+ * landscape = leftover side rail (not rotate-to-portrait). Desktop callers keep their layout.
  */
 export function MobilePlayShell({
   crt,
@@ -46,22 +46,6 @@ export function MobilePlayShell({
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  if (landscape) {
-    return (
-      <div
-        className={cn(
-          "mobile-play-shell mobile-play-shell-landscape flex h-dvh max-h-dvh flex-col items-center justify-center overflow-hidden bg-bg px-6",
-          className,
-        )}
-        data-orientation="landscape"
-      >
-        <p className="max-w-xs text-center text-sm leading-relaxed text-muted">
-          Rotate to portrait to play
-        </p>
-      </div>
-    );
-  }
-
   const badgeText =
     badge === undefined || badge === null || badge === ""
       ? null
@@ -74,7 +58,7 @@ export function MobilePlayShell({
         className,
       )}
       data-chrome={open ? "open" : "collapsed"}
-      data-orientation="portrait"
+      data-orientation={landscape ? "landscape" : "portrait"}
     >
       <div className="mobile-crt-stage relative min-h-0 flex-1 px-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
         {crt}

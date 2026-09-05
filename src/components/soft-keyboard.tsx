@@ -89,7 +89,12 @@ export function SoftKeyboard({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="mt-auto shrink-0 md:hidden">
+    <div
+      className={cn(
+        "soft-keyboard mt-auto shrink-0 lg:hidden",
+        open && "soft-keyboard-open",
+      )}
+    >
       <button
         type="button"
         className="mt-2 h-11 w-full rounded-md bg-raised text-sm text-muted hover:text-fg"
