@@ -256,3 +256,155 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Shared mobile play shell — CRT-first, collapsible chrome (frozen brief). */
+.mobile-play-shell {
+  position: relative;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  --mobile-handle: 2.75rem;
+  --mobile-rail: var(--mobile-handle);
+  --mobile-min-chrome: 16rem;
+  --mobile-kb-chip: 7.5rem;
+}
+
+.mobile-crt-stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.mobile-crt-stage > section {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+}
+
+.mobile-crt-stage .screen-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Contain-to-width: shrink beats clip so canvas/title stay fully visible. */
+.mobile-crt-stage .screen-bezel {
+  width: min(100cqw, calc(100cqh * 384 / 272));
+  height: min(100cqh, calc(100cqw * 272 / 384));
+}
+
+.mobile-chrome-sheet {
+  max-height: 11rem;
+  transition: max-height 180ms ease;
+}
+
+.mobile-chrome-sheet-open {
+  max-height: min(72dvh, 36rem);
+}
+
+.mobile-chrome-grip {
+  display: block;
+  width: 2.25rem;
+  height: 0.25rem;
+  border-radius: 99px;
+  background: var(--color-border);
+}
+
+.mobile-chrome-scrim {
+  top: 0;
+  bottom: 0;
+}
+
+@media (orientation: landscape) {
+  .mobile-play-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--mobile-rail);
+    grid-template-rows: minmax(0, 1fr);
+    container-type: size;
+  }
+  .mobile-play-shell[data-chrome="open"] {
+    --mobile-rail: max(
+      var(--mobile-min-chrome),
+      calc(100cqw - 100cqh * 384 / 272)
+    );
+  }
+  .mobile-play-shell .mobile-crt-stage {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    min-height: 0;
+    position: relative;
+    padding: 0;
+  }
+  .mobile-play-shell .mobile-chrome-scrim {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .mobile-play-shell .mobile-chrome-sheet {
+    grid-column: 2;
+    grid-row: 1;
+    flex-direction: row;
+    max-height: none;
+    height: 100%;
+    width: var(--mobile-rail);
+    border-top: 0;
+    border-inline-start: 1px solid var(--color-border);
+  }
+  .mobile-play-shell .mobile-chrome-sheet-open {
+    max-height: none;
+  }
+  .mobile-play-shell .mobile-chrome-handle {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    height: calc(100% - var(--mobile-kb-chip));
+    width: var(--mobile-handle);
+    min-width: var(--mobile-handle);
+  }
+  .mobile-play-shell .mobile-chrome-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .mobile-play-shell .soft-keyboard {
+    position: fixed;
+    right: calc(var(--mobile-rail) - var(--mobile-handle));
+    bottom: 0;
+    left: auto;
+    z-index: 40;
+    margin-top: 0;
+    width: var(--mobile-handle);
+  }
+  .mobile-play-shell .soft-keyboard > button {
+    width: var(--mobile-handle);
+    min-width: var(--mobile-handle);
+    height: var(--mobile-kb-chip);
+    padding-inline: 0;
+    margin-top: 0;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    white-space: nowrap;
+  }
+  .mobile-play-shell .soft-keyboard-open {
+    left: auto;
+    right: 0;
+    bottom: 0;
+    width: max(var(--mobile-rail), var(--mobile-min-chrome));
+    max-height: 100dvh;
+    overflow: auto;
+    background: var(--color-surface);
+    border-inline-start: 1px solid var(--color-border);
+  }
+  .mobile-play-shell .mobile-library-list {
+    height: 12rem;
+    min-height: 12rem;
+    max-height: 12rem;
+    overflow: auto;
+  }
+}

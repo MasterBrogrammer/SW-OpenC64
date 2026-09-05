@@ -196,7 +196,14 @@ async function loadTitle(machine: C64Machine, id: string) {
   }
 }
 
-export function EmulatorScreen() {
+export function EmulatorScreen({
+  chrome = "full",
+}: {
+  /** full = desktop toolbar; minimal = CRT + soft keyboard for mobile shell. */
+  chrome?: "full" | "minimal";
+} = {}) {
+  const minimal = chrome === "minimal";
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const machineRef = useRef<C64Machine | null>(null);
   const popoutRef = useRef<Window | null>(null);
@@ -207,6 +214,7 @@ export function EmulatorScreen() {
   const color = useEmu((s) => s.color);
   const scanlines = useEmu((s) => s.scanlines);
   const invert = useEmu((s) => s.invert);
+  const muted = useEmu((s) => s.muted);
   const volume = useEmu((s) => s.volume);
   const focused = useEmu((s) => s.focused);
   const joystick = useEmu((s) => s.joystick);
@@ -236,9 +244,8 @@ export function EmulatorScreen() {
         const vol =
           typeof window !== "undefined" ? readVolume() : useEmu.getState().volume;
         useEmu.getState().setVolume(vol);
-        useEmu.getState().setMuted(false);
         useEmu.getState().setEmuSpeed(27);
-        machine.audio.setMuted(false);
+        machine.audio.setMuted(useEmu.getState().muted);
         machine.audio.setVolume(vol / 100);
         machine.setSpeed(27);
         const want =
@@ -267,6 +274,7 @@ export function EmulatorScreen() {
         useEmu.getState().setFocused(true);
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error(err);
         useEmu.getState().setStatus(
           err instanceof Error ? err.message : "The C64 failed to power on",
@@ -302,8 +310,8 @@ export function EmulatorScreen() {
   }, [paused]);
 
   useEffect(() => {
-    machineRef.current?.audio.setMuted(false);
-  }, []);
+    machineRef.current?.audio.setMuted(muted);
+  }, [muted]);
 
   useEffect(() => {
     machineRef.current?.setSpeed(27);
@@ -320,11 +328,11 @@ export function EmulatorScreen() {
         invert,
         joystick,
         volume,
-        muted: false,
+        muted,
       },
       window.location.origin,
     );
-  }, [color, scanlines, invert, joystick, volume, poppedOut]);
+  }, [color, scanlines, invert, joystick, volume, muted, poppedOut]);
 
   useEffect(() => {
     machineRef.current?.audio.setVolume(volume / 100);
@@ -511,10 +519,15 @@ export function EmulatorScreen() {
 
   return (
     <section
-      className="flex h-full min-h-0 flex-col rounded-lg bg-surface p-3 shadow-[var(--shadow-border)] sm:p-4"
+      className={
+        minimal
+          ? "flex h-full min-h-0 flex-col"
+          : "flex h-full min-h-0 flex-col rounded-lg bg-surface p-3 shadow-[var(--shadow-border)] sm:p-4"
+      }
       data-loaded-id={loadedId ?? ""}
       data-emu-status={emuStatus}
       data-boot-phase={bootPhase}
+      data-chrome={chrome}
     >
       <div className="flex min-h-0 flex-1">
         <div className="screen-stage min-w-0 flex-1">
@@ -570,11 +583,14 @@ export function EmulatorScreen() {
             ) : null}
           </div>
         </div>
+        {!minimal ? (
         <aside className="flex w-28 shrink-0 items-end justify-center pb-1 pl-1 sm:w-32">
           <WozModeBadge />
         </aside>
+        ) : null}
       </div>
 
+      {!minimal ? (
       <div className="mt-3 flex shrink-0 flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
           <span className="inline-flex min-w-0 items-center gap-2 rounded-md bg-raised px-2.5 py-1.5 font-mono text-[11px] text-muted">
@@ -727,6 +743,7 @@ export function EmulatorScreen() {
           </div>
         </div>
       </div>
+      ) : null}
 
       <SoftKeyboard
         onKey={(index) => machineRef.current?.keyDown(index)}

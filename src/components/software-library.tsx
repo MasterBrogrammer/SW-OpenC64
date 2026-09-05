@@ -182,7 +182,7 @@ export function SoftwareLibrary() {
             title="Starred only"
             onClick={() => setOnlyStarred((v) => !v)}
             className={cn(
-              "grid size-9 shrink-0 place-items-center rounded-md",
+              "grid size-11 shrink-0 place-items-center rounded-md",
               onlyStarred ? "text-accent" : "text-muted hover:text-fg",
             )}
           >
@@ -204,7 +204,7 @@ export function SoftwareLibrary() {
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-md bg-raised text-xs text-muted hover:text-fg"
+          className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-md bg-raised text-xs text-muted hover:text-fg"
         >
           <FolderOpen className="size-4" />
           Open disk image…
@@ -234,7 +234,7 @@ export function SoftwareLibrary() {
               type="button"
               onClick={() => setCategory(cat)}
               className={cn(
-                "h-8 shrink-0 rounded-md px-3 text-xs",
+                "h-11 min-w-11 shrink-0 rounded-md px-3 text-xs",
                 category === cat
                   ? "bg-accent text-accent-fg"
                   : "bg-raised text-muted hover:text-fg",
@@ -328,7 +328,7 @@ function TitleRow({
         </div>
         <button
           type="button"
-          className="grid size-9 shrink-0 place-items-center text-muted hover:text-fg"
+          className="grid size-11 shrink-0 place-items-center text-muted hover:text-fg"
           onClick={(e) => {
             e.stopPropagation();
             onStar();
@@ -340,9 +340,9 @@ function TitleRow({
       </div>
       <Button
         type="button"
-        size="sm"
+        size="lg"
         variant={active ? "outline" : "default"}
-        className="mt-2 w-full"
+        className="mt-2 h-11 w-full"
         data-software-id={title.id}
         disabled={loading}
         onClick={onBoot}
@@ -395,7 +395,7 @@ function UserRow({
         </div>
         <button
           type="button"
-          className="grid size-9 shrink-0 place-items-center text-muted hover:text-fg"
+          className="grid size-11 shrink-0 place-items-center text-muted hover:text-fg"
           onClick={onStar}
           aria-label={starred ? "Unstar" : "Star"}
         >
@@ -403,7 +403,7 @@ function UserRow({
         </button>
         <button
           type="button"
-          className="grid size-9 shrink-0 place-items-center text-muted hover:text-danger"
+          className="grid size-11 shrink-0 place-items-center text-muted hover:text-danger"
           onClick={onRemove}
           aria-label="Remove"
         >
@@ -412,9 +412,9 @@ function UserRow({
       </div>
       <Button
         type="button"
-        size="sm"
+        size="lg"
         variant={active ? "outline" : "default"}
-        className="mt-2 w-full"
+        className="mt-2 h-11 w-full"
         data-software-id={userTitleId(disk.id)}
         disabled={loading}
         onClick={onBoot}
